@@ -1,0 +1,6 @@
+"0","#| label: extract-model-metrics"
+"0",""
+"0","glance0 <- glance(mod0)"
+"0","glance1 <- glance(mod1)"
+"0","glance2 <- glance(mod2)"
+"0","glance3 <- glance(mod3)"

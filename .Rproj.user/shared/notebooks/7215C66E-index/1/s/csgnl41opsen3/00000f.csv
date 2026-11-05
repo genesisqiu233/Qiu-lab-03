@@ -1,0 +1,8 @@
+"0","#| label: diagnostics"
+"0","#| fig-cap: ""Regression diagnostic plots for the provisionally selected model"""
+"0","#| fig-width: 9"
+"0","#| fig-height: 8"
+"0",""
+"0","op <- par(mfrow = c(2, 2))"
+"0",""
+"0","plot(selected_model)"
