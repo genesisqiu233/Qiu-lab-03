@@ -1,7 +1,7 @@
 
 ---
-title: "Linear Regression: Model Specification, Comparison, and Interpretation"
-subtitle: "Investigate overall workplace rating using several predictors"
+title: "Linear Regression Assignment: Model Specification, Comparison, and Interpretation"
+subtitle: "Investigate overall workplace rating using several workplace attitude variables as predictors"
 author: Qiu Caotao (Genesis)
 format:
   html:
@@ -19,13 +19,9 @@ execute:
 
 ## Purpose
 
-This report demonstrates a complete linear regression workflow:
+I will use the `datasets::attitude` dataset to investigate associations between overall workplace rating ('rating') and three workplace attitude variables,including handling of employee complaints ('complaints'), opportunity to learn ('learning'), and pay increases ('raises').
 
-**Explore Data → Specify Models → Estimate Models → Compare Models → Evaluate Assumptions → Select a Model → Interpret Results**
-
-We will use the `attitude::Rating` dataset to investigate associations between overall workplace rating, handling of employee complaints, opportunity, and pay increases.
-
-Our objectives are to:
+My objectives are to:
 
 1. Specify and estimate several plausible competing regression models.
 2. Compare nested models using F-tests and changes in explained variance.
@@ -38,16 +34,6 @@ All numerical results in this document are generated directly from the analysis.
 
 ## 1. Load packages and prepare the data
 
-Install any missing packages **once in the R Console**:
-
-```r
-install.packages(c("dplyr", "tidyr", "ggplot2",
-  "broom", "performance", "gt"
-))
-```
-
-The following code belongs in the Quarto document.
-
 ```{r}
 #| label: setup
 
@@ -59,26 +45,27 @@ library(performance)
 library(gt)
 
 dat <- attitude |>
-  select(rating, complaints, learning, raises)
+  select(rating, complaints, learning, raises) |>
+  drop_na()
 
 n <- nrow(dat)
 ```
 
-The dataset contains overall workplace rating scores, handling scores of employee complaints, scores of opportunity to learn, and scores of pay increases.
+This dataset contains overall workplace rating, and several other variables summarize employee attitudes toward different aspects of the workplace, including: handling of employee complaints, opportunity to learn, and pay increases.
 
-We use complete cases for all variables so that the candidate models are estimated using the same observations.
+I use complete cases for all variables so that the candidate models are estimated using the same observations.
 
-The final analysis includes **`r n` attitude**.
+The final analysis includes **`r n` observations**.
 
 ### Research question and predictions
 
 How are handling of employee complaints, opportunity to learn, and pay increases associated with overall workplace rating?
 
-We expect:
+I expect:
 
-- Higher handling scores of employee complaints correlate with higher overall workplace rating.
-- More opportunities to learn associate with higher overall workplace rating.
-- Higher pay increases associate with higher overall workplace rating.
+- Higher/better handling of employee complaints associate with higher overall workplace rating.
+- Higher/more opportunities to learn associate with higher overall workplace rating.
+- Higher/more pay increases associate with higher overall workplace rating.
 
 These are predictions about associations, not causal effects.
 
@@ -149,7 +136,7 @@ ggplot(dat, aes(x = complaints, y = rating)) +
     color = "#0000FF"
   ) +
   labs(
-    x = "Complaints",
+    x = "Handling of Employee Complaints",
     y = "Rating"
   ) +
   theme_minimal(base_size = 12)
@@ -167,7 +154,7 @@ ggplot(dat, aes(x = learning, y = rating)) +
     color = "#0000FF"
   ) +
   labs(
-    x = "Learning",
+    x = "Opportunity to Learn",
     y = "Rating"
   ) +
   theme_minimal(base_size = 12)
@@ -185,13 +172,13 @@ ggplot(dat, aes(x = raises, y = rating)) +
     color = "#0000FF"
   ) +
   labs(
-    x = "Raises",
+    x = "Pay Increases",
     y = "Rating"
   ) +
   theme_minimal(base_size = 12)
 ```
 
-These exploratory plots allow us to examine whether the relationships appear approximately linear and whether unusual observations may affect the regression analyses.
+Above exploratory plots demonstrate relationships between each predictors (complaints, learning, raises) to outcome (rating) are appeared approximately linear with positive correlation of all three predictors to the outcome variable, and the small amount of unusual observations in Learning and Raises (high in x but low in y and vise versa) do not seem to affect the regression analyses, the exploratory results are consistent with my expectations.
 
 The regression lines shown here are bivariate relationships rather than relationships adjusted for other predictors.
 
@@ -199,21 +186,23 @@ The regression lines shown here are bivariate relationships rather than relation
 
 ## 3. Specify and estimate competing models
 
-We will fit an intercept-only model and three increasingly complex substantive models.
+I expect handling of employee complaints is positively correlated with overall workplace rating because I hypothesize that better handling of complaints increase workplace morale that drives up rating. I also expect opportunity for learning could explain additional variation beyond complaint handling because I hypothesize that more opportunity to learn also boost workplace satisfaction that increases rating. I expect that pay increases could explain further variation after accounting for complaints and learning because I hypothesize that more often and greater pay increases increase worker satisfaction that boost rating.
+
+I will fit an intercept-only model and three increasingly complex substantive models.
 
 | Model | Formula | Research rationale |
 |:--|:--|:--|
 | M0: Null | `rating ~ 1` | Baseline model |
-| M1: Education | `rating ~ complaints` | Rating varies with complaints |
-| M2: Education + Income | `rating ~ complaints + learning` | Learning explains additional variation |
-| M3: Expanded | `rating ~ complaints + learning + raises` | Raises explains additional variation |
+| M1: Complaints | `rating ~ complaints` | Rating varies with handling of complaints |
+| M2: Complaints + Learning | `rating ~ complaints + learning` | Opportunity to learn explains additional variation beyond handling of complaints |
+| M3: Expanded | `rating ~ complaints + learning + raises` | Pay increases explains additional variation beyond opportunity to learn and handling of complaints|
 
 The models are **nested**: each successive model contains all predictors from the preceding model, plus one or more additional predictors.
 
 ```{r}
 #| label: fit-models
 
-# Intercept-only model
+# Intercept-only (null) model
 mod0 <- lm(rating ~ 1, data = dat)
 
 # Complaints model
@@ -228,8 +217,6 @@ mod3 <- lm(rating ~ complaints + learning + raises, data = dat)
 
 ### Inspecting the models
 
-After executing the model-fitting code, explore the results in the **R Console**:
-
 ```r
 summary(mod0)
 summary(mod1)
@@ -239,32 +226,22 @@ summary(mod3)
 confint(mod3)
 ```
 
-Some important interpretive distinctions:
-
 - In M0, the intercept represents the sample mean workplace rating score.
 - In M1, the complaints coefficient represents the expected difference in workplace rating associated with handling scores of employee complaints
 - In M2, the complaints coefficient represents this association after adjusting for opportunity to learn.
 - In M3, complaints and learning coefficients are additionally adjusted for pay increases.
 
-
-Examine the coding using:
-
-```r
-levels(dat$type)
-contrasts(dat$type)
-```
-
 ---
 
 ## 4. Compare the models
 
-We will evaluate the models using two complementary approaches.
+I will evaluate the models using two complementary approaches.
 
 **Nested-model F-tests** determine whether the additional predictor(s) in a larger model produce a statistically significant improvement in fit.
 
 **Overall model performance** describes how well each model fits the observed data.
 
-Our main performance metrics are:
+My main performance metrics are:
 
 - **R²:** Proportion of variation explained.
 - **Adjusted R²:** Explained variation adjusted for model complexity.
@@ -273,7 +250,7 @@ Our main performance metrics are:
 
 ### 4.1. Conduct nested-model comparisons
 
-Because our models are nested and estimated using the same observations, we can compare all four models in a single `anova()` call.
+Because my models are nested and estimated using the same observations, I can compare all four models in a single `anova()` call.
 
 ```{r}
 #| label: nested-tests
@@ -285,13 +262,9 @@ tests
 
 Each row represents a model. The F-statistic and p-value on each row after the first test whether that model improves fit relative to the preceding model.
 
-For example:
-
-- M1 versus M0 tests the contribution of handling scores of employee complaints.
+- M1 versus M0 tests the contribution of handling of employee complaints.
 - M2 versus M1 tests the additional contribution of opportunity to learn.
 - M3 versus M2 tests the joint additional contribution of pay increases.
-
-We can retain and rename the statistics relevant to our comparison table.
 
 ```{r}
 #| label: prepare-nested-tests
@@ -310,7 +283,7 @@ tests <- tests |>
 
 The `glance()` function returns a one-row data frame containing model-level statistics.
 
-We can apply it to each fitted model.
+I apply it to each fitted model.
 
 ```{r}
 #| label: extract-model-metrics
@@ -321,7 +294,7 @@ glance2 <- glance(mod2)
 glance3 <- glance(mod3)
 ```
 
-We can then combine these results using `rbind()`.
+I then combine these results using `rbind()`.
 
 ```{r}
 #| label: combine-model-metrics
@@ -343,7 +316,7 @@ glances <- rbind(
 
 ### 4.3. Combine nested tests and model performance
 
-Because the rows in `glances` and `tests` represent the same models in the same order, we can combine them using `cbind()`.
+Because the rows in `glances` and `tests` represent the same models in the same order, I can combine them using `cbind()`.
 
 ```{r}
 #| label: combine-comparisons
@@ -355,9 +328,9 @@ comparison_table <- cbind(
 )
 ```
 
-Next, calculate the change in R² between successive models using `lag()`.
+Next, I calculate the change in R² between successive models using `lag()`.
 
-We will also calculate RMSE directly from each model's residuals.
+I will also calculate RMSE directly from each model's residuals.
 
 ```{r}
 #| label: prepare-comparison-table
@@ -385,12 +358,6 @@ comparison_table <- comparison_table |>
     Nested.p.value
   )
 ```
-
-**Why calculate RMSE separately?**
-
-Although `glance()` provides a statistic called `sigma`, this is the residual standard error rather than the ordinary in-sample RMSE. The two use different denominators.
-
-For consistency, we calculate RMSE explicitly as the square root of the mean squared residual.
 
 ### 4.4. Display the combined model-comparison table
 
@@ -454,19 +421,13 @@ The second set describes its **incremental improvement** relative to the precedi
 - Nested F-statistic
 - Nested p-value
 
-For example, the M2 row tells us:
+M2 (R²=**`r round(comparison_table$r.squared[3], 3)`**) and M3 (R²=**`r round(comparison_table$r.squared[4], 3)`**) explains the largest proportion of variation in rating measured by R². However, M2 (Adjusted R²=**`r round(comparison_table$adj.r.squared[3], 3)`**) has a greater adjusted R² than M1 (Adjusted R²=**`r round(comparison_table$adj.r.squared[2], 3)`**) and M3 (Adjusted R²=**`r round(comparison_table$adj.r.squared[4], 3)`**), adjusted R² increases when learning is added but decreases when raises is added. In M1, complaints explains (**`r round(comparison_table$Delta.R2[2], 3)`**) in additional variance compare to M0 measured in ΔR². In M2, learning explains (**`r round(comparison_table$Delta.R2[3], 3)`**) in additional variance compare to M1 measured in ΔR². In M3, raises explains (**`r round(comparison_table$Delta.R2[4], 3)`**) in additional variance compare to M2 measured in ΔR². Overall, M1 (complaints) has the greatest increase in additional variance explained. Only M1 (p=**`r ifelse(comparison_table$Nested.p.value[2] < .001, "< .001", round(comparison_table$Nested.p.value[2], 3))`**) produces statistically significant improvements in fit measured in nested p value. Similarly, only M1 (RMSE=**`r round(comparison_table$RMSE[2], 3)`**) shows substantively meaningful reduction in RMSE from M0 (RMSE=**`r round(comparison_table$RMSE[1], 3)`**). 
 
-1. How much variation M2 explains overall.
-2. How much additional variation M2 explains compared with M1.
-3. Whether the improvement is statistically significant.
-
-The M3 comparison tests the joint contribution of pay increases after accounting for handling scores of employee complaints and opportuntity to learn.
+The M3 comparison tests the joint contribution of pay increases after accounting for handling scores of employee complaints and opportunity to learn.
 
 The M0 row has no incremental comparison because it serves as the baseline.
 
 ### 4.5. Additional performance comparison
-
-The `performance` package also provides a convenient way to compare fitted models.
 
 ```{r}
 #| label: performance-comparison
@@ -488,7 +449,7 @@ performance_comparison
 plot(performance_comparison)
 ```
 
-These functions may include additional metrics such as AIC and BIC, which we will not focus on here.
+These functions may include additional metrics such as AIC and BIC, which I will not focus on here.
 
 ---
 
@@ -496,7 +457,7 @@ These functions may include additional metrics such as AIC and BIC, which we wil
 
 Model selection requires considering both statistical evidence and model complexity.
 
-In particular, we should consider:
+In particular, I consider:
 
 1. Whether adding predictors significantly improves model fit.
 2. How much additional variation is explained.
@@ -504,9 +465,7 @@ In particular, we should consider:
 4. Whether RMSE meaningfully decreases.
 5. Whether the added complexity is substantively justified.
 
-For this demonstration, we will use **adjusted R²** as an initial selection criterion.
-
-This is a convenient teaching example, not a universal rule for selecting regression models.
+For this demonstration, I will use **adjusted R²** as an initial selection criterion.
 
 ```{r}
 #| label: select-model
@@ -535,9 +494,9 @@ Its performance is:
 
 - R² = **`r round(selected_row$r.squared, 3)`**
 - Adjusted R² = **`r round(selected_row$adj.r.squared, 3)`**
-- RMSE = **`r round(selected_row$RMSE, 2)`** rating scores.
+- RMSE = **`r round(selected_row$RMSE, 2)`** rating points.
 
-We will now examine whether the selected model has important diagnostic problems.
+I will now examine whether the selected model has important diagnostic problems.
 
 ---
 
@@ -545,13 +504,13 @@ We will now examine whether the selected model has important diagnostic problems
 
 Regression diagnostics help identify potential violations of model assumptions and unusual observations.
 
-We will examine:
+I will examine:
 
 - Linearity.
 - Residual normality.
 - Heteroscedasticity.
 - Influential observations.
-- Multicollinearity, where applicable.
+- Multicollinearity.
 
 ### Standard diagnostic plots
 
@@ -568,45 +527,49 @@ plot(selected_model)
 par(op)
 ```
 
-When interpreting these plots, consider:
+I consider following diagnostic plots:
 
-**Residuals versus fitted values**
+**Residuals versus fitted values (Linearity)**
 
-Is there evidence of curvature or systematic patterns?
+There is no evidence of curvature or systematic patterns in residuals vs fitted, the relationship between predictors and the outcome is adequately represented by the model.
 
-**Normal Q–Q plot**
+**Normal Q–Q plot (Normality)**
 
-Do the residuals deviate substantially from a normal distribution?
+The residuals are approximately normally distributed, although the lower and upper tails of the residuals deviate moderately from the reference line. Given the small sample size (n=30), this mild tail deviation is worth knowing but not severe.
 
-**Scale–location plot**
+**Scale–location plot (Homoscedasticity)**
 
-Does residual variability change across fitted values?
+Residual variability fluctuates slightly across the middle range of fitted values, which suggests mild heteroscedasticity.
 
-**Residuals versus leverage**
+**Residuals versus leverage (Influential Observations)**
 
-Are there observations with unusually high leverage or influence?
+No observations fall outside Cook's distance contours, indicating that no single observation disproportionately influences the fitted model.
+
+**Multicollinearity**
+
+The predictors are moderately correlated, but multicollinearity is not severe enough to prevent stable estimation of each predictor's unique contributions.
 
 ### Additional diagnostics
 
 The `performance` package provides a more comprehensive diagnostic interface.
 
-Run the following interactively in the **Console**:
-
 ```r
 check_model(selected_model)
 ```
 
-For models with multiple predictors, you can also investigate multicollinearity:
+For models with multiple predictors, I also investigate multicollinearity:
 
 ```r
 check_collinearity(selected_model)
 ```
 
-These diagnostics should inform your final model selection.
+These diagnostics should inform my final model selection.
 
 A model with slightly better fit statistics may not be preferable if its assumptions are seriously compromised.
 
-For the purposes of this worked example, we retain the provisionally selected model for the reporting demonstration.
+For the purposes of this assignment, I would retain the previously chosen model as it achieves the highest adjusted R² and lowest RMSE among the candidate models without severe diagnostic violations.
+
+The assumption violation of homoscedasticity and slight deviation of normality in residuals do not affect my confidence in the model as this model is still the best performing model in all four models that I compared when considering the variance explained and complexity of the model.
 
 ---
 
@@ -713,7 +676,7 @@ selected_row |>
 
 The selected model, **`r selected_name`**, explains approximately **`r round(100 * selected_row$r.squared, 1)`%** of the variation in rating within this sample.
 
-Its adjusted R² is **`r round(selected_row$adj.r.squared, 3)`**, and its in-sample RMSE is **`r round(selected_row$RMSE, 2)` rating **.
+Its adjusted R² is **`r round(selected_row$adj.r.squared, 3)`**, and its in-sample RMSE is **`r round(selected_row$RMSE, 2)` rating points**.
 
 The RMSE describes the typical magnitude of the model's fitted residuals on a root-mean-square scale.
 
@@ -722,27 +685,23 @@ It should not be interpreted as an estimate of out-of-sample predictive accuracy
 
 ### Interpreting complaints
 
-Holding the other predictors constant, increases in handling scores of employee complaints is associated with a significant **`r round(coefficient_results |> filter(term == "complaints") |> pull(estimate), 2)`-point** increase in predicted rating scores, 95% CI [`r round(coefficient_results |> filter(term == "complaints") |> pull(conf.low), 2)`, `r round(coefficient_results |> filter(term == "complaints") |> pull(conf.high), 2)`].
+Holding the other predictors constant, a 1 point increase in handling of employee complaints is associated with a significant **`r round(coefficient_results |> filter(term == "complaints") |> pull(estimate), 2)`-point** increase in predicted workplace rating, 95% CI [`r round(coefficient_results |> filter(term == "complaints") |> pull(conf.low), 2)`, `r round(coefficient_results |> filter(term == "complaints") |> pull(conf.high), 2)`].
 
 ### Interpreting learning
 
-Holding the other predictors constant, inceases in opportunity to learn is associated with a significant **`r round(coefficient_results |> filter(term == "learning") |> pull(estimate), 4)`-point** increase in predicted rating scores, 95% CI [`r round(coefficient_results |> filter(term == "learning") |> pull(conf.low), 3)`, `r round(coefficient_results |> filter(term == "learning") |> pull(conf.high), 3)`].
-
-### Interpreting raises
-
-Holding the other predictors constant, inceases in pay increases is associated with a significant **`r round(coefficient_results |> filter(term == "raises") |> pull(estimate), 4)`-point** increase in predicted rating scores, 95% CI [`r round(coefficient_results |> filter(term == "raises") |> pull(conf.low), 3)`, `r round(coefficient_results |> filter(term == "raises") |> pull(conf.high), 3)`].
+Holding handling of employee complaints constant, a 1 point increase in opportunity to learn is associated with a **`r round(coefficient_results |> filter(term == "learning") |> pull(estimate), 4)`-point** increase in predicted workplace rating, 95% CI [`r round(coefficient_results |> filter(term == "learning") |> pull(conf.low), 3)`, `r round(coefficient_results |> filter(term == "learning") |> pull(conf.high), 3)`], however, this conditional association is not statistically significant at the alpha = .05 level because the confidence interval includes zero.
 
 ### Substantive conclusions
 
 This analysis illustrates how overall workplace rating can be investigated using several competing regression models.
 
-The model-comparison process allows us to evaluate whether additional predictors explain meaningful variation beyond simpler models.
+The model-comparison process allows me to evaluate whether additional predictors explain meaningful variation beyond simpler models.
 
-The final model provides estimates of the conditional associations between workplace characteristics and overall workplace rating.
+The final model provides estimates of the conditional associations between overall workplace rating and employee attitudes toward different aspects of the workplace.
 
 However, several limitations should be recognized:
 
-- The observations describe department rather than individual employee.
+- The observations describe departments rather than individual employees.
 - The data are observational.
 - Regression coefficients represent associations rather than causal effects.
 - Model diagnostics may reveal limitations not captured by summary fit statistics.

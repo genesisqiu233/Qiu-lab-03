@@ -1,6 +1,6 @@
 "0","#| label: fit-models"
 "0",""
-"0","# Intercept-only model"
+"0","# Intercept-only (null) model"
 "0","mod0 <- lm(rating ~ 1, data = dat)"
 "0",""
 "0","# Complaints model"

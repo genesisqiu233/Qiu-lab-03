@@ -1,7 +1,0 @@
-"0","#| label: extract-coefficients"
-"0",""
-"0","coefficient_results <- tidy("
-"0","  selected_model,"
-"0","  conf.int = TRUE,"
-"0","  conf.level = 0.95"
-"0",")"
