@@ -8,6 +8,7 @@
 "0","library(gt)"
 "0",""
 "0","dat <- attitude |>"
-"0","  select(rating, complaints, learning, raises)"
+"0","  select(rating, complaints, learning, raises) |>"
+"0","  drop_na()"
 "0",""
 "0","n <- nrow(dat)"

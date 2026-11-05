@@ -1,7 +1,0 @@
-"0","#| label: combine-comparisons"
-"0",""
-"0","comparison_table <- cbind("
-"0","  Model = mods,"
-"0","  glances,"
-"0","  tests"
-"0",")"
